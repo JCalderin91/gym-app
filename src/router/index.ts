@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import Login from '../views/Login.vue'
 import Home from '../views/Home.vue'
 import AddExercise from '../views/AddExercise.vue'
+import Charts from '../views/Charts.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -27,6 +28,12 @@ const router = createRouter({
       path: '/add-exercise',
       name: 'AddExercise',
       component: AddExercise,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/charts',
+      name: 'Charts',
+      component: Charts,
       meta: { requiresAuth: true }
     }
   ]

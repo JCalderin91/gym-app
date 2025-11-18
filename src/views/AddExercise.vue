@@ -7,12 +7,12 @@
     </div>
 
     <!-- Topbar -->
-    <div class="relative z-10">
+    <div class="relative z-50">
       <Topbar @logout="signOut" />
     </div>
 
     <!-- Contenido principal -->
-    <div class="container mx-auto p-4 max-w-2xl relative z-10">
+    <div class="container mx-auto p-4 max-w-[640px] relative z-10">
       <div class="mb-6">
         <div class="flex items-center gap-2 mb-1">
           <button @click="handleFinish"

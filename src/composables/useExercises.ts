@@ -298,12 +298,50 @@ export const useRecords = () => {
     }
   }
 
+  const fetchRecordsByDateRange = async (startDate: Date, endDate: Date, userId?: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const userIdToUse = userId || user?.id
+
+      if (!userIdToUse) {
+        throw new Error('Usuario no autenticado')
+      }
+
+      const { data, error: fetchError } = await supabase
+        .from('records')
+        .select(`
+          *,
+          exercises (
+            id,
+            name,
+            description
+          ),
+          units (
+            id,
+            name,
+            symbol
+          )
+        `)
+        .eq('user_id', userIdToUse)
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString())
+        .order('created_at', { ascending: true })
+
+      if (fetchError) throw fetchError
+      return data || []
+    } catch (err: any) {
+      console.error('Error fetching records by date range:', err)
+      return []
+    }
+  }
+
   return {
     records,
     loading,
     error,
     fetchRecords,
     fetchTodayRecordsByExercise,
+    fetchRecordsByDateRange,
     createRecord,
     deleteRecord
   }

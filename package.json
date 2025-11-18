@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.81.1",
     "buffer": "^6.0.3",
+    "chart.js": "^4.5.1",
     "feather-icons": "^4.29.2",
     "vite-plugin-node-polyfills": "^0.24.0",
     "vue": "^3.5.24",

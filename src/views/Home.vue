@@ -7,18 +7,28 @@
     </div>
 
     <!-- Topbar -->
-    <div class="relative z-10">
-      <Topbar :show-add-button="true" @add="handleAdd" @logout="signOut" />
+    <div class="relative z-50">
+      <Topbar @logout="signOut" />
     </div>
 
-    <!-- Contenido principal -->
-    <div class="container mx-auto px-4 py-6 relative z-10">
-      <div class="mb-6">
-        <h2 class="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent mb-1">
-          Bienvenido
-        </h2>
-        <p class="text-gray-300 text-md">{{ user?.email }}</p>
-      </div>
+        <!-- Contenido principal -->
+        <div class="container mx-auto px-4 py-6 relative z-10 max-w-[640px]">
+          <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent mb-1">
+                Bienvenido
+              </h2>
+              <p class="text-gray-300 text-md">{{ user?.email }}</p>
+            </div>
+            <button
+              @click="handleAdd"
+              class="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap"
+              title="Añadir ejercicio"
+            >
+              <FeatherIcon name="plus" :size="18" color="currentColor" />
+              Añadir
+            </button>
+          </div>
 
       <!-- Lista de registros -->
       <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-3 border border-white/20">
@@ -187,18 +197,18 @@ const groupedRecords = computed(() => {
   return grouped
 })
 
-const handleAdd = () => {
-  router.push('/add-exercise')
-}
+    const handleAdd = () => {
+      router.push('/add-exercise')
+    }
 
-const handleAddMoreSeries = (record: any) => {
-  // Navegar a add-exercise con el ejercicio preseleccionado
-  if (record?.exercise_id) {
-    router.push(`/add-exercise?exercise_id=${record.exercise_id}`)
-  } else {
-    router.push('/add-exercise')
-  }
-}
+    const handleAddMoreSeries = (record: any) => {
+      // Navegar a add-exercise con el ejercicio preseleccionado
+      if (record?.exercise_id) {
+        router.push(`/add-exercise?exercise_id=${record.exercise_id}`)
+      } else {
+        router.push('/add-exercise')
+      }
+    }
 
 const refreshRecords = async () => {
   if (!selectedDate.value) {
