@@ -272,10 +272,12 @@ const createWeightChart = () => {
     }
     
     // Mapear los datos a las fechas del eje X
-    const data = labels.map(date => {
+    const data: (number | null)[] = labels.map(date => {
       const dateIndex = exerciseInfo.dates.indexOf(date)
-      const value = dateIndex >= 0 ? exerciseInfo.weights[dateIndex] : null
-      return value !== null && !isNaN(value) ? value : null
+      if (dateIndex < 0) return null
+      const value = exerciseInfo.weights[dateIndex]
+      if (value === undefined || value === null || isNaN(value)) return null
+      return value
     })
     
     return {
@@ -358,10 +360,12 @@ const createRepsChart = () => {
     }
     
     // Mapear los datos a las fechas del eje X
-    const data = labels.map(date => {
+    const data: (number | null)[] = labels.map(date => {
       const dateIndex = exerciseInfo.dates.indexOf(date)
-      const value = dateIndex >= 0 ? exerciseInfo.reps[dateIndex] : null
-      return value !== null && !isNaN(value) ? value : null
+      if (dateIndex < 0) return null
+      const value = exerciseInfo.reps[dateIndex]
+      if (value === undefined || value === null || isNaN(value)) return null
+      return value
     })
     
     return {
