@@ -162,7 +162,7 @@ export const useRecords = () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  const fetchRecords = async (userId?: string) => {
+  const fetchRecords = async (userId?: string, date?: Date) => {
     loading.value = true
     error.value = null
     try {
@@ -173,7 +173,7 @@ export const useRecords = () => {
         throw new Error('Usuario no autenticado')
       }
 
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from('records')
         .select(`
           *,
@@ -189,7 +189,17 @@ export const useRecords = () => {
           )
         `)
         .eq('user_id', userIdToUse)
-        .order('created_at', { ascending: false })
+
+      // Filtrar por fecha si se proporciona
+      if (date) {
+        const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0)
+        const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999)
+        query = query
+          .gte('created_at', startOfDay.toISOString())
+          .lte('created_at', endOfDay.toISOString())
+      }
+
+      const { data, error: fetchError } = await query.order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
       records.value = data || []

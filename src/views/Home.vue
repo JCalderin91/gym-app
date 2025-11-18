@@ -1,27 +1,57 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
+  <div class="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-800 relative overflow-hidden">
+    <!-- Elementos decorativos de fondo -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob"></div>
+      <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-2000"></div>
+    </div>
+
     <!-- Topbar -->
-    <Topbar @add="handleAdd" @logout="signOut" />
+    <div class="relative z-10">
+      <Topbar :show-add-button="true" @add="handleAdd" @logout="signOut" />
+    </div>
 
     <!-- Contenido principal -->
-    <div class="container mx-auto px-4 py-4">
+    <div class="container mx-auto px-4 py-6 relative z-10">
       <div class="mb-6">
-        <h2 class="text-2xl font-bold text-white mb-2">Bienvenido</h2>
-        <p class="text-gray-300">{{ user?.email }}</p>
+        <h2 class="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent mb-1">
+          Bienvenido
+        </h2>
+        <p class="text-gray-300 text-md">{{ user?.email }}</p>
       </div>
 
       <!-- Lista de registros -->
-      <div class="bg-white rounded-2xl shadow-2xl p-4">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-2xl font-bold text-gray-900">Tus Registros</h2>
-          <button
-            v-if="records.length > 0"
-            @click="refreshRecords"
-            class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Actualizar"
-          >
-            <FeatherIcon name="refresh-cw" :size="20" color="currentColor" />
-          </button>
+      <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-3 border border-white/20">
+        <div class="flex items-center justify-between gap-4 mb-6">
+          <h2 class="font-bold text-gray-900">Tus Registros</h2>
+          <div class="flex items-center gap-2">
+            <!-- Selector de fecha -->
+            <div class="flex items-center gap-2">
+              <input
+                id="date-selector"
+                v-model="selectedDate"
+                type="date"
+                @change="handleDateChange"
+                class="px-3 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white shadow-sm"
+              />
+              <button
+                v-if="!isToday"
+                @click="resetToToday"
+                class="px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+                title="Ver hoy"
+              >
+                Hoy
+              </button>
+            </div>
+              <button
+                v-if="records.length > 0 && !loading"
+                @click="refreshRecords"
+                class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-110 shadow-sm"
+                title="Actualizar"
+              >
+                <FeatherIcon name="refresh-cw" :size="20" color="currentColor" />
+              </button>
+          </div>
         </div>
 
         <!-- Loading state -->
@@ -31,10 +61,12 @@
         </div>
 
         <!-- Empty state -->
-        <div v-else-if="records.length === 0" class="bg-gray-50 rounded-xl p-8 text-center">
-          <FeatherIcon name="activity" :size="48" color="#9CA3AF" class="mx-auto mb-4" />
-          <p class="text-gray-500 text-lg mb-2">No tienes registros aún</p>
-          <p class="text-gray-400 text-sm">Haz clic en "Añadir" para registrar tu primer ejercicio</p>
+        <div v-else-if="records.length === 0" class="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-8 text-center border border-gray-200/50">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl mb-4 shadow-lg">
+            <FeatherIcon name="activity" :size="32" color="#FFFFFF" class="mx-auto" />
+          </div>
+          <p class="text-gray-700 text-lg font-semibold mb-2">No tienes registros aún</p>
+          <p class="text-gray-500 text-sm">Haz clic en "Añadir" para registrar tu primer ejercicio</p>
         </div>
 
         <!-- Lista de registros agrupados por ejercicio -->
@@ -45,10 +77,9 @@
             class="border border-gray-200 rounded-lg overflow-hidden"
           >
             <!-- Encabezado del ejercicio -->
-            <div class="bg-gray-50 px-4 py-1 border-b border-gray-200">
+            <div class="bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-3 border-b border-gray-200/50">
               <div class="flex justify-between items-center">
-                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <FeatherIcon name="activity" :size="18" color="#3B82F6" />
+                <h3 class="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
                   {{ exerciseName }}
                   <span class="text-sm font-normal text-gray-500 ml-2">
                     ({{ exerciseRecords.length }} {{ exerciseRecords.length === 1 ? 'serie' : 'series' }})
@@ -56,7 +87,7 @@
                 </h3>
                 <button
                   @click="handleAddMoreSeries(exerciseRecords[0])"
-                  class="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                  class="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-all duration-200 hover:scale-110 shadow-sm"
                   title="Añadir más series"
                 >
                   <FeatherIcon name="plus" :size="20" color="currentColor" />
@@ -69,11 +100,11 @@
               <div
                 v-for="record in exerciseRecords"
                 :key="record.id"
-                class="px-2 hover:bg-gray-50 transition-colors"
+                class="px-2 py-1 hover:bg-gray-50 transition-colors"
               >
                 <div class="flex justify-between items-center">
                   <div class="flex-1">
-                    <div class="flex flex-wrap gap-4 text-sm text-gray-600">
+                    <div class="flex flex-wrap gap-2 text-sm text-gray-600">
                       <span class="flex items-center gap-1">
                         <FeatherIcon name="zap" :size="16" color="currentColor" />
                         <strong>{{ record.weight }} {{ getUnitSymbol(record) }}</strong>
@@ -106,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Topbar from '../components/Topbar.vue'
 import FeatherIcon from '../components/FeatherIcon.vue'
@@ -116,6 +147,20 @@ import { useRecords } from '../composables/useExercises'
 const router = useRouter()
 const { user, signOut, checkUser } = useAuth()
 const { records, loading, fetchRecords, deleteRecord } = useRecords()
+
+const getTodayDateString = () => {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const selectedDate = ref<string>(getTodayDateString())
+
+const isToday = computed(() => {
+  return selectedDate.value === getTodayDateString()
+})
 
 // Agrupar registros por ejercicio
 const groupedRecords = computed(() => {
@@ -156,7 +201,44 @@ const handleAddMoreSeries = (record: any) => {
 }
 
 const refreshRecords = async () => {
-  await fetchRecords()
+  if (!selectedDate.value) {
+    await fetchRecords()
+    return
+  }
+  // Parsear la fecha en zona horaria local para evitar problemas de UTC
+  const parts = selectedDate.value.split('-').map(Number)
+  if (parts.length !== 3 || parts.some(p => isNaN(p))) {
+    await fetchRecords()
+    return
+  }
+  const year = parts[0]!
+  const month = parts[1]!
+  const day = parts[2]!
+  const localDate = new Date(year, month - 1, day)
+  await fetchRecords(undefined, localDate)
+}
+
+const handleDateChange = async () => {
+  if (!selectedDate.value) {
+    await fetchRecords()
+    return
+  }
+  // Parsear la fecha en zona horaria local para evitar problemas de UTC
+  const parts = selectedDate.value.split('-').map(Number)
+  if (parts.length !== 3 || parts.some(p => isNaN(p))) {
+    await fetchRecords()
+    return
+  }
+  const year = parts[0]!
+  const month = parts[1]!
+  const day = parts[2]!
+  const localDate = new Date(year, month - 1, day)
+  await fetchRecords(undefined, localDate)
+}
+
+const resetToToday = () => {
+  selectedDate.value = getTodayDateString()
+  handleDateChange()
 }
 
 const handleDelete = async (recordId: string) => {
@@ -166,7 +248,21 @@ const handleDelete = async (recordId: string) => {
 
   try {
     await deleteRecord(recordId)
-    await fetchRecords()
+    if (!selectedDate.value) {
+      await fetchRecords()
+      return
+    }
+    // Parsear la fecha en zona horaria local para evitar problemas de UTC
+    const parts = selectedDate.value.split('-').map(Number)
+    if (parts.length !== 3 || parts.some(p => isNaN(p))) {
+      await fetchRecords()
+      return
+    }
+    const year = parts[0]!
+    const month = parts[1]!
+    const day = parts[2]!
+    const localDate = new Date(year, month - 1, day)
+    await fetchRecords(undefined, localDate)
   } catch (error: any) {
     alert(error.message || 'Error al eliminar el registro')
   }
@@ -208,6 +304,34 @@ const getUnitSymbol = (record: any) => {
 
 onMounted(async () => {
   await checkUser()
-  await fetchRecords()
+  const today = new Date()
+  // Usar fecha local para evitar problemas de zona horaria
+  const localDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  await fetchRecords(undefined, localDate)
 })
 </script>
+
+<style scoped>
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+</style>

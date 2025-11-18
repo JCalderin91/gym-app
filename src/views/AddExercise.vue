@@ -1,24 +1,33 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
+  <div class="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-800 relative overflow-hidden">
+    <!-- Elementos decorativos de fondo -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob"></div>
+      <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-2000"></div>
+    </div>
+
     <!-- Topbar -->
-    <Topbar @logout="signOut" />
+    <div class="relative z-10">
+      <Topbar @logout="signOut" />
+    </div>
 
     <!-- Contenido principal -->
-    <div class="container mx-auto p-4 max-w-2xl">
+    <div class="container mx-auto p-4 max-w-2xl relative z-10">
       <div class="mb-6">
         <div class="flex items-center gap-2 mb-1">
-
           <button @click="handleFinish"
-            class="flex items-center gap-2 text-white hover:text-gray-300 transition-colors">
+            class="flex items-center gap-2 text-white hover:text-gray-300 transition-all duration-200 hover:scale-110">
             <FeatherIcon name="arrow-left" :size="20" color="currentColor" />
           </button>
-          <h2 class="text-3xl font-bold text-white">Registrar Ejercicios</h2>
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+            Registrar Ejercicios
+          </h2>
         </div>
-        <p class="text-gray-300">Registra tus series mientras entrenas</p>
+        <p class="text-gray-300 text-lg">Registra tus series mientras entrenas</p>
       </div>
 
       <!-- Ejercicio seleccionado -->
-      <div v-if="currentExercise" class="bg-blue-600 rounded-2xl shadow-2xl p-4 mb-6">
+      <div v-if="currentExercise" class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-2xl p-3 mb-4 border border-white/20">
         <div class="flex justify-between items-center">
           <div class="flex-1">
             <h3 class="text-2xl font-bold text-white mb-1">{{ currentExercise.name }}</h3>
@@ -34,7 +43,7 @@
       </div>
 
       <!-- Seleccionar categoría y ejercicio (si no hay uno seleccionado) -->
-      <div v-else class="bg-white rounded-2xl shadow-2xl p-6 mb-6 space-y-4">
+      <div v-else class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-3 mb-6 space-y-4 border border-white/20">
         <!-- Paso 1: Seleccionar categoría -->
         <div>
           <h3 class="text-xl font-bold text-gray-900 mb-4">Selecciona una categoría</h3>
@@ -84,7 +93,7 @@
             </select>
             <button
               @click="openNewExerciseModal"
-              class="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
+              class="px-4 py-3 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
               title="Crear nuevo ejercicio"
             >
               <FeatherIcon name="plus" :size="18" color="currentColor" />
@@ -94,7 +103,7 @@
       </div>
 
       <!-- Series agregadas en esta sesión -->
-      <div v-if="currentExercise && sessionRecords.length > 0" class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+      <div v-if="currentExercise && sessionRecords.length > 0" class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-3 mb-4 border border-white/20">
         <h3 class="text-lg font-bold text-gray-900 mb-4">Series de hoy</h3>
         <div class="space-y-2">
           <div v-for="(record, index) in sessionRecords" :key="index"
@@ -113,7 +122,7 @@
       </div>
 
       <!-- Formulario rápido para agregar serie -->
-      <div v-if="currentExercise" class="bg-white rounded-2xl shadow-2xl p-6">
+      <div v-if="currentExercise" class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-3 border border-white/20">
         <h3 class="text-lg font-bold text-gray-900 mb-4">Agregar Serie</h3>
         <form @submit.prevent="handleAddSeries" class="space-y-4">
           <div class="grid grid-cols-3 gap-4">
@@ -141,7 +150,7 @@
             </div>
             <div>
               <label for="quantity" class="block text-sm font-semibold text-gray-700 mb-2">
-                Repeticiones <span class="text-red-500">*</span>
+                Reps. <span class="text-red-500">*</span>
               </label>
               <input id="quantity" v-model.number="form.quantity" type="number" min="1" required placeholder="Ej: 10"
                 autofocus
@@ -159,7 +168,7 @@
           </div>
 
           <button type="submit" :disabled="loading || !form.weight || !form.quantity"
-            class="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-lg rounded-lg transition-colors duration-200 shadow-lg flex items-center justify-center gap-2">
+            class="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-blue-400 disabled:to-purple-400 text-white font-semibold text-lg rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
             <FeatherIcon v-if="loading" name="loader" :size="20" color="currentColor" class="animate-spin" />
             <span v-else>Agregar Serie</span>
           </button>
@@ -168,9 +177,9 @@
     </div>
 
     <!-- Modal para crear nuevo ejercicio -->
-    <div v-if="showNewExerciseModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+    <div v-if="showNewExerciseModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       @click.self="showNewExerciseModal = false">
-      <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+      <div class="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-6 max-w-md w-full border border-white/20">
         <h3 class="text-2xl font-bold text-gray-900 mb-4">Nuevo Ejercicio</h3>
         <form @submit.prevent="handleCreateExercise" class="space-y-4">
           <div>
@@ -207,11 +216,11 @@
           </div>
           <div class="flex gap-4 pt-2">
             <button type="button" @click="showNewExerciseModal = false"
-              class="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors">
+              class="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-xl transition-all duration-200 shadow-sm hover:shadow-md">
               Cancelar
             </button>
             <button type="submit" :disabled="creatingExercise"
-              class="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-lg transition-colors">
+              class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-blue-400 disabled:to-purple-400 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
               {{ creatingExercise ? 'Creando...' : 'Crear' }}
             </button>
           </div>
@@ -451,3 +460,28 @@ const getUnitSymbol = (unitId?: number) => {
   return unit ? unit.symbol : ''
 }
 </script>
+
+<style scoped>
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+</style>
