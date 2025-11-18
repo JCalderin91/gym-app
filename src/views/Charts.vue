@@ -67,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import Topbar from '../components/Topbar.vue'
 import FeatherIcon from '../components/FeatherIcon.vue'
@@ -126,7 +126,7 @@ const prepareWeightData = () => {
     if (!exerciseMap[exerciseName]) {
       exerciseMap[exerciseName] = {}
       sortedDates.forEach(date => {
-        exerciseMap[exerciseName][date] = []
+        exerciseMap[exerciseName]![date] = []
       })
     }
   })
@@ -137,8 +137,9 @@ const prepareWeightData = () => {
     const date = new Date(record.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
     const weight = parseFloat(record.weight) || 0
     
-    if (exerciseMap[exerciseName] && exerciseMap[exerciseName][date]) {
-      exerciseMap[exerciseName][date].push(weight)
+    const exerciseData = exerciseMap[exerciseName]
+    if (exerciseData && exerciseData[date]) {
+      exerciseData[date].push(weight)
     }
   })
   
@@ -146,13 +147,16 @@ const prepareWeightData = () => {
   const result: Record<string, { dates: string[], weights: number[] }> = {}
   
   Object.keys(exerciseMap).forEach(exerciseName => {
-    result[exerciseName] = {
-      dates: sortedDates,
-      weights: sortedDates.map(date => {
-        const weights = exerciseMap[exerciseName][date] || []
-        if (weights.length === 0) return NaN // NaN para que Chart.js no muestre el punto
-        return weights.reduce((sum, w) => sum + w, 0) / weights.length // Promedio de peso
-      })
+    const exerciseData = exerciseMap[exerciseName]
+    if (exerciseData) {
+      result[exerciseName] = {
+        dates: sortedDates,
+        weights: sortedDates.map(date => {
+          const weights = exerciseData[date] || []
+          if (weights.length === 0) return NaN // NaN para que Chart.js no muestre el punto
+          return weights.reduce((sum, w) => sum + w, 0) / weights.length // Promedio de peso
+        })
+      }
     }
   })
   
@@ -179,7 +183,7 @@ const prepareRepsData = () => {
     if (!exerciseMap[exerciseName]) {
       exerciseMap[exerciseName] = {}
       sortedDates.forEach(date => {
-        exerciseMap[exerciseName][date] = []
+        exerciseMap[exerciseName]![date] = []
       })
     }
   })
@@ -190,8 +194,9 @@ const prepareRepsData = () => {
     const date = new Date(record.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
     const reps = record.quantity || 0
     
-    if (exerciseMap[exerciseName] && exerciseMap[exerciseName][date]) {
-      exerciseMap[exerciseName][date].push(reps)
+    const exerciseData = exerciseMap[exerciseName]
+    if (exerciseData && exerciseData[date]) {
+      exerciseData[date].push(reps)
     }
   })
   
@@ -199,13 +204,16 @@ const prepareRepsData = () => {
   const result: Record<string, { dates: string[], reps: number[] }> = {}
   
   Object.keys(exerciseMap).forEach(exerciseName => {
-    result[exerciseName] = {
-      dates: sortedDates,
-      reps: sortedDates.map(date => {
-        const reps = exerciseMap[exerciseName][date] || []
-        if (reps.length === 0) return NaN // NaN para que Chart.js no muestre el punto
-        return reps.reduce((sum, r) => sum + r, 0) / reps.length // Promedio de repeticiones
-      })
+    const exerciseData = exerciseMap[exerciseName]
+    if (exerciseData) {
+      result[exerciseName] = {
+        dates: sortedDates,
+        reps: sortedDates.map(date => {
+          const reps = exerciseData[date] || []
+          if (reps.length === 0) return NaN // NaN para que Chart.js no muestre el punto
+          return reps.reduce((sum, r) => sum + r, 0) / reps.length // Promedio de repeticiones
+        })
+      }
     }
   })
   
@@ -256,12 +264,18 @@ const createWeightChart = () => {
       { border: 'rgb(34, 197, 94)', background: 'rgba(34, 197, 94, 0.1)' },
       { border: 'rgb(251, 191, 36)', background: 'rgba(251, 191, 36, 0.1)' }
     ]
-    const color = colors[index % colors.length]
+    const color = colors[index % colors.length]!
+    const exerciseInfo = exerciseData[exerciseName]
+    
+    if (!exerciseInfo) {
+      return null
+    }
     
     // Mapear los datos a las fechas del eje X
     const data = labels.map(date => {
-      const dateIndex = exerciseData[exerciseName].dates.indexOf(date)
-      return dateIndex >= 0 ? exerciseData[exerciseName].weights[dateIndex] : null
+      const dateIndex = exerciseInfo.dates.indexOf(date)
+      const value = dateIndex >= 0 ? exerciseInfo.weights[dateIndex] : null
+      return value !== null && !isNaN(value) ? value : null
     })
     
     return {
@@ -273,7 +287,7 @@ const createWeightChart = () => {
       fill: true,
       spanGaps: false
     }
-  })
+  }).filter((dataset): dataset is NonNullable<typeof dataset> => dataset !== null)
   
   if (weightChart) {
     weightChart.destroy()
@@ -336,12 +350,18 @@ const createRepsChart = () => {
       { border: 'rgb(34, 197, 94)', background: 'rgba(34, 197, 94, 0.1)' },
       { border: 'rgb(251, 191, 36)', background: 'rgba(251, 191, 36, 0.1)' }
     ]
-    const color = colors[index % colors.length]
+    const color = colors[index % colors.length]!
+    const exerciseInfo = exerciseData[exerciseName]
+    
+    if (!exerciseInfo) {
+      return null
+    }
     
     // Mapear los datos a las fechas del eje X
     const data = labels.map(date => {
-      const dateIndex = exerciseData[exerciseName].dates.indexOf(date)
-      return dateIndex >= 0 ? exerciseData[exerciseName].reps[dateIndex] : null
+      const dateIndex = exerciseInfo.dates.indexOf(date)
+      const value = dateIndex >= 0 ? exerciseInfo.reps[dateIndex] : null
+      return value !== null && !isNaN(value) ? value : null
     })
     
     return {
@@ -353,7 +373,7 @@ const createRepsChart = () => {
       fill: true,
       spanGaps: false
     }
-  })
+  }).filter((dataset): dataset is NonNullable<typeof dataset> => dataset !== null)
   
   if (repsChart) {
     repsChart.destroy()
@@ -405,13 +425,16 @@ const createVolumeChart = () => {
     volumeChart.destroy()
   }
   
+  // Filtrar valores undefined y convertir a null
+  const volumeData = volumes.map(v => v !== undefined ? v : null)
+  
   volumeChart = new Chart(volumeChartRef.value, {
     type: 'bar',
     data: {
       labels: dates,
       datasets: [{
         label: 'Volumen Total',
-        data: volumes,
+        data: volumeData,
         backgroundColor: 'rgba(59, 130, 246, 0.6)',
         borderColor: 'rgb(59, 130, 246)',
         borderWidth: 2
