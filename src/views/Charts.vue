@@ -104,7 +104,7 @@ Chart.register(...registerables)
 
 const { signOut } = useAuth()
 const { loading, fetchRecordsByDateRange } = useRecords()
-const { units, fetchUnits } = useUnits()
+const { fetchUnits } = useUnits()
 
 const records = ref<any[]>([])
 const weightChartRef = ref<HTMLCanvasElement | null>(null)
