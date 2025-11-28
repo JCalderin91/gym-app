@@ -109,28 +109,56 @@
           <div v-for="(record, index) in sessionRecords" :key="index"
             class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div class="flex items-center gap-4">
+              <span 
+                v-if="record.feeling !== undefined && record.feeling !== null"
+                class="w-3 h-3 rounded-full flex-shrink-0"
+                :class="getFeelingBgColor(record.feeling)"
+                :title="getFeelingLabel(record.feeling)"
+              ></span>
               <span class="text-sm font-semibold text-gray-500">Serie {{ index + 1 }}</span>
               <span class="text-gray-700">
                 <strong>{{ record.weight }} {{ getUnitSymbol(record.unit_id) }}</strong> × {{ record.quantity }} reps
               </span>
             </div>
-            <span class="text-xs text-gray-400">
-              {{ formatTime(record.timestamp) }}
-            </span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-400">
+                {{ formatTime(record.timestamp) }}
+              </span>
+              <button
+                @click="handleDeleteSeries(record.id, index)"
+                class="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                title="Eliminar"
+              >
+                <FeatherIcon name="trash-2" :size="16" color="currentColor" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Formulario rápido para agregar serie -->
       <div v-if="currentExercise" class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-3 border border-white/20">
-        <h3 class="text-lg font-bold text-gray-900 mb-4">Agregar Serie</h3>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-900">Agregar Serie</h3>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-600">{{ formatDateDisplay(form.date) }}</span>
+            <button 
+              type="button"
+              @click="openDatePicker"
+              class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Cambiar fecha"
+            >
+              <FeatherIcon name="calendar" :size="20" color="#4B5563" />
+            </button>
+          </div>
+        </div>
         <form @submit.prevent="handleAddSeries" class="space-y-4">
           <div class="grid grid-cols-3 gap-4">
             <div>
               <label for="weight" class="block text-sm font-semibold text-gray-700 mb-2">
                 Peso <span class="text-red-500">*</span>
               </label>
-              <input id="weight" v-model="form.weight" type="text" required placeholder="Ej: 5" autofocus
+              <input id="weight" v-model.number="form.weight" type="number" step="0.01" min="0" required placeholder="Ej: 5" autofocus
                 class="w-full px-4 h-12 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" />
             </div>
             <div>
@@ -157,6 +185,33 @@
                 class="w-full px-4 h-12 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" />
             </div>
           </div>
+
+          <!-- Botones de feeling -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              ¿Cómo te sentiste? Me sentí <span class="font-bold" :class="getFeelingColor(form.feeling ?? 1)">{{ getFeelingLabel(form.feeling ?? 1) }}</span>
+            </label>
+            <div class="flex justify-center gap-10">
+              <button
+                type="button"
+                v-for="feelingValue in [0, 1, 2, 3]"
+                :key="feelingValue"
+                @click="form.feeling = feelingValue"
+                :class="[
+                  'size-12 opacity-50 aspect-square rounded-lg border-1 transition-all duration-200 hover:scale-105',
+                  form.feeling === feelingValue 
+                    ? 'border-blue-500 bg-blue-50 !opacity-100 !scale-105' 
+                    : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                ]"
+                :title="getFeelingLabel(feelingValue)"
+              >
+                <FeelingIcon :feeling="feelingValue" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Campo de fecha oculto para el picker -->
+          <input id="date" v-model="form.date" type="date" class="hidden" />
 
           <!-- Mensaje de éxito -->
           <div v-if="lastSavedRecord"
@@ -235,6 +290,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Topbar from '../components/Topbar.vue'
 import FeatherIcon from '../components/FeatherIcon.vue'
+import FeelingIcon from '../components/FeelingIcon.vue'
 import { useAuth } from '../composables/useAuth'
 import { useCategories, useExercises, useRecords, useUnits, type Exercise } from '../composables/useExercises'
 
@@ -244,7 +300,7 @@ const { signOut } = useAuth()
 const { categories, loading: loadingCategories, error: categoriesError, fetchCategories } = useCategories()
 const { exercises, fetchExercises, createExercise } = useExercises()
 const { units, fetchUnits } = useUnits()
-const { loading, createRecord, fetchTodayRecordsByExercise } = useRecords()
+const { loading, createRecord, fetchTodayRecordsByExercise, deleteRecord } = useRecords()
 
 const selectedCategoryId = ref<number | null>(null)
 
@@ -252,17 +308,29 @@ const showNewExerciseModal = ref(false)
 const creatingExercise = ref(false)
 const currentExercise = ref<Exercise | null>(null)
 const sessionRecords = ref<Array<{
+  id?: string
   weight: string
   quantity: number
   unit_id?: number
   timestamp: Date
+  feeling?: number
 }>>([])
+
+const getTodayDateString = () => {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 const form = ref({
   exercise_id: null as number | null,
   weight: '',
   unit_id: null as number | null,
-  quantity: null as number | null
+  quantity: null as number | null,
+  date: getTodayDateString(),
+  feeling: 1 as number
 })
 
 const newExercise = ref({
@@ -324,7 +392,8 @@ const selectExercise = async () => {
         weight: record.weight,
         quantity: record.quantity,
         unit_id: record.unit_id || undefined,
-        timestamp: new Date(record.created_at)
+        timestamp: new Date(record.created_at),
+        feeling: record.feeling
       }))
 
       // Si hay registros previos, usar el último peso y unidad como sugerencia
@@ -348,8 +417,16 @@ const changeExercise = () => {
   sessionRecords.value = []
   form.value.weight = ''
   form.value.quantity = null
+  form.value.feeling = 1
   lastSavedRecord.value = null
   // Mantener la categoría seleccionada para facilitar seleccionar otro ejercicio
+}
+
+const openDatePicker = () => {
+  const dateInput = document.getElementById('date') as HTMLInputElement
+  if (dateInput) {
+    dateInput.showPicker()
+  }
 }
 
 const handleAddSeries = async () => {
@@ -359,20 +436,31 @@ const handleAddSeries = async () => {
 
   loading.value = true
   try {
+    // Verificar si la fecha es hoy
+    const todayString = getTodayDateString()
+    const isToday = form.value.date === todayString
+
+    // Convertir la fecha del formulario a objeto Date solo si no es hoy
+    const customDate = !isToday && form.value.date ? new Date(form.value.date + 'T12:00:00') : undefined
+
     // Guardar en la base de datos
-    await createRecord(
+    const newRecord = await createRecord(
       currentExercise.value.id,
       form.value.weight,
       form.value.quantity,
-      form.value.unit_id || undefined
+      form.value.unit_id || undefined,
+      customDate,
+      form.value.feeling ?? undefined
     )
 
-    // Agregar a la lista de sesión
+    // Agregar a la lista de sesión con el ID del registro
     sessionRecords.value.push({
+      id: newRecord.id,
       weight: form.value.weight,
       quantity: form.value.quantity,
       unit_id: form.value.unit_id || undefined,
-      timestamp: new Date()
+      timestamp: customDate || new Date(),
+      feeling: form.value.feeling
     })
 
     // Mostrar mensaje de éxito
@@ -381,9 +469,10 @@ const handleAddSeries = async () => {
       quantity: form.value.quantity
     }
 
-    // Mantener el peso y unidad, limpiar solo cantidad
+    // Mantener el peso y unidad, limpiar solo cantidad y feeling
     // El peso y unidad se mantienen para facilitar agregar otra serie
     form.value.quantity = null
+    form.value.feeling = 1
 
     // Ocultar mensaje después de 2 segundos
     setTimeout(() => {
@@ -454,10 +543,68 @@ const formatTime = (date: Date) => {
   })
 }
 
+const formatDateDisplay = (dateString: string) => {
+  if (!dateString) return ''
+  const date = new Date(dateString + 'T12:00:00')
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  
+  // Comparar solo la fecha (sin hora)
+  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate())
+  
+  if (dateOnly.getTime() === todayOnly.getTime()) {
+    return 'Hoy'
+  } else if (dateOnly.getTime() === yesterdayOnly.getTime()) {
+    return 'Ayer'
+  } else {
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+}
+
+const getFeelingLabel = (feeling: number) => {
+  const labels = ['Bien', 'Normal', 'Regular', 'Cansado']
+  return labels[feeling] || ''
+}
+
+const getFeelingColor = (feeling: number) => {
+  const colors = ['text-yellow-400', 'text-blue-500', 'text-orange-500', 'text-red-500']
+  return colors[feeling] || 'text-gray-500'
+}
+
+const getFeelingBgColor = (feeling: number) => {
+  const colors = ['bg-yellow-400', 'bg-blue-500', 'bg-orange-500', 'bg-red-500']
+  return colors[feeling] || 'bg-gray-500'
+}
+
 const getUnitSymbol = (unitId?: number) => {
   if (!unitId) return ''
   const unit = units.value.find(u => u.id === unitId)
   return unit ? unit.symbol : ''
+}
+
+const handleDeleteSeries = async (recordId: string | undefined, index: number) => {
+  if (!confirm('¿Estás seguro de que quieres eliminar esta serie?')) {
+    return
+  }
+
+  try {
+    // Si tiene ID, eliminar de la base de datos
+    if (recordId) {
+      await deleteRecord(recordId)
+    }
+    
+    // Eliminar de la lista de sesión (tanto si tiene ID como si no)
+    sessionRecords.value.splice(index, 1)
+  } catch (error: any) {
+    alert(error.message || 'Error al eliminar la serie')
+  }
 }
 </script>
 

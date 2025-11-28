@@ -114,7 +114,13 @@
               >
                 <div class="flex justify-between items-center">
                   <div class="flex-1">
-                    <div class="flex flex-wrap gap-2 text-sm text-gray-600">
+                    <div class="flex flex-wrap gap-2 text-sm text-gray-600 items-center">
+                      <span 
+                        v-if="record.feeling !== undefined && record.feeling !== null"
+                        class="w-3 h-3 rounded-full flex-shrink-0"
+                        :class="getFeelingBgColor(record.feeling)"
+                        :title="getFeelingLabel(record.feeling)"
+                      ></span>
                       <span class="flex items-center gap-1">
                         <FeatherIcon name="zap" :size="16" color="currentColor" />
                         <strong>{{ record.weight }} {{ getUnitSymbol(record) }}</strong>
@@ -310,6 +316,16 @@ const getUnitSymbol = (record: any) => {
     return record.units.symbol
   }
   return 'kg' // Valor por defecto si no hay unidad
+}
+
+const getFeelingLabel = (feeling: number) => {
+  const labels = ['Bien', 'Normal', 'Regular', 'Cansado']
+  return labels[feeling] || ''
+}
+
+const getFeelingBgColor = (feeling: number) => {
+  const colors = ['bg-yellow-400', 'bg-blue-500', 'bg-orange-500', 'bg-red-500']
+  return colors[feeling] || 'bg-gray-500'
 }
 
 onMounted(async () => {

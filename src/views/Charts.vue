@@ -30,7 +30,19 @@
       <div v-else class="space-y-6">
         <!-- Gráfica 1: Progreso de peso por ejercicio -->
         <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 border border-white/20">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">Progreso de Peso por Ejercicio</h2>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900">Progreso de Peso por Ejercicio</h2>
+            <select
+              v-model="selectedUnitFilter"
+              @change="updateCharts"
+              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
+            >
+              <option value="">Todas las unidades</option>
+              <option value="kilos">Kilos</option>
+              <option value="unidades">Unidades</option>
+              <option value="libras">Libras</option>
+            </select>
+          </div>
           <div class="h-64">
             <canvas ref="weightChartRef"></canvas>
           </div>
@@ -46,8 +58,22 @@
 
         <!-- Gráfica 3: Volumen por entrenamiento -->
         <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 border border-white/20">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">Volumen por Entrenamiento</h2>
-          <p class="text-sm text-gray-600 mb-4">Volumen = Peso × Repeticiones × Series</p>
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-xl font-bold text-gray-900">Volumen por Entrenamiento</h2>
+              <p class="text-sm text-gray-600 mt-1">Volumen = Peso × Repeticiones × Series</p>
+            </div>
+            <select
+              v-model="selectedVolumeUnitFilter"
+              @change="updateCharts"
+              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
+            >
+              <option value="">Todas las unidades</option>
+              <option value="kilos">Kilos</option>
+              <option value="unidades">Unidades</option>
+              <option value="libras">Libras</option>
+            </select>
+          </div>
           <div class="h-64">
             <canvas ref="volumeChartRef"></canvas>
           </div>
@@ -72,17 +98,20 @@ import { Chart, registerables } from 'chart.js'
 import Topbar from '../components/Topbar.vue'
 import FeatherIcon from '../components/FeatherIcon.vue'
 import { useAuth } from '../composables/useAuth'
-import { useRecords } from '../composables/useExercises'
+import { useRecords, useUnits } from '../composables/useExercises'
 
 Chart.register(...registerables)
 
 const { signOut } = useAuth()
 const { loading, fetchRecordsByDateRange } = useRecords()
+const { units, fetchUnits } = useUnits()
 
 const records = ref<any[]>([])
 const weightChartRef = ref<HTMLCanvasElement | null>(null)
 const repsChartRef = ref<HTMLCanvasElement | null>(null)
 const volumeChartRef = ref<HTMLCanvasElement | null>(null)
+const selectedUnitFilter = ref<string>('')
+const selectedVolumeUnitFilter = ref<string>('')
 
 let weightChart: Chart | null = null
 let repsChart: Chart | null = null
@@ -110,10 +139,21 @@ const loadData = async () => {
 const prepareWeightData = () => {
   const exerciseMap: Record<string, Record<string, number[]>> = {}
   
+  // Filtrar registros por unidad si hay un filtro seleccionado
+  let filteredRecords = records.value
+  
+  if (selectedUnitFilter.value) {
+    filteredRecords = records.value.filter(record => {
+      if (!record.units) return false
+      const unitName = record.units.name?.toLowerCase() || ''
+      return unitName.includes(selectedUnitFilter.value.toLowerCase())
+    })
+  }
+  
   // Obtener todas las fechas únicas
   const allDates = new Set<string>()
   
-  records.value.forEach(record => {
+  filteredRecords.forEach(record => {
     const date = new Date(record.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
     allDates.add(date)
   })
@@ -121,7 +161,7 @@ const prepareWeightData = () => {
   const sortedDates = Array.from(allDates).sort()
   
   // Inicializar mapas para cada ejercicio
-  records.value.forEach(record => {
+  filteredRecords.forEach(record => {
     const exerciseName = record.exercises?.name || 'Desconocido'
     if (!exerciseMap[exerciseName]) {
       exerciseMap[exerciseName] = {}
@@ -132,7 +172,7 @@ const prepareWeightData = () => {
   })
   
   // Agregar pesos por fecha y ejercicio
-  records.value.forEach(record => {
+  filteredRecords.forEach(record => {
     const exerciseName = record.exercises?.name || 'Desconocido'
     const date = new Date(record.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
     const weight = parseFloat(record.weight) || 0
@@ -221,20 +261,31 @@ const prepareRepsData = () => {
 }
 
 // Preparar datos para gráfica de volumen
-const prepareVolumeData = () => {
+const prepareVolumeData = (unitFilter?: string) => {
   const volumeByDate: Record<string, number> = {}
   
-  records.value.forEach(record => {
+  // Filtrar registros por unidad si hay un filtro seleccionado
+  let filteredRecords = records.value
+  
+  if (unitFilter) {
+    filteredRecords = records.value.filter(record => {
+      if (!record.units) return false
+      const unitName = record.units.name?.toLowerCase() || ''
+      return unitName.includes(unitFilter.toLowerCase())
+    })
+  }
+  
+  filteredRecords.forEach(record => {
     const date = new Date(record.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
-    const weight = parseFloat(record.weight) || 0
-    const reps = record.quantity || 0
+    const weight = Number(record.weight) || 0
+    const reps = Number(record.quantity) || 0
     
     if (!volumeByDate[date]) {
       volumeByDate[date] = 0
     }
     
     // Volumen = peso × repeticiones (cada registro es una serie)
-    volumeByDate[date] += weight * reps
+    volumeByDate[date] += Number(weight) * Number(reps)
   })
   
   const dates = Object.keys(volumeByDate).sort()
@@ -287,7 +338,7 @@ const createWeightChart = () => {
       backgroundColor: color.background,
       tension: 0.4,
       fill: true,
-      spanGaps: false
+      spanGaps: true
     }
   }).filter((dataset): dataset is NonNullable<typeof dataset> => dataset !== null)
   
@@ -375,7 +426,7 @@ const createRepsChart = () => {
       backgroundColor: color.background,
       tension: 0.4,
       fill: true,
-      spanGaps: false
+      spanGaps: true
     }
   }).filter((dataset): dataset is NonNullable<typeof dataset> => dataset !== null)
   
@@ -423,7 +474,7 @@ const createRepsChart = () => {
 const createVolumeChart = () => {
   if (!volumeChartRef.value) return
   
-  const { dates, volumes } = prepareVolumeData()
+  const { dates, volumes } = prepareVolumeData(selectedVolumeUnitFilter.value)
   
   if (volumeChart) {
     volumeChart.destroy()
@@ -433,15 +484,18 @@ const createVolumeChart = () => {
   const volumeData = volumes.map(v => v !== undefined ? v : null)
   
   volumeChart = new Chart(volumeChartRef.value, {
-    type: 'bar',
+    type: 'line',
     data: {
       labels: dates,
       datasets: [{
         label: 'Volumen Total',
         data: volumeData,
-        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderColor: 'rgb(59, 130, 246)',
-        borderWidth: 2
+        borderWidth: 2,
+        tension: 0.4,
+        fill: true,
+        spanGaps: true
       }]
     },
     options: {
@@ -484,6 +538,7 @@ const updateCharts = () => {
 }
 
 onMounted(async () => {
+  await fetchUnits()
   await loadData()
 })
 

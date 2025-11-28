@@ -31,6 +31,7 @@ export interface Record {
   user_id: string
   created_at: string
   unit_id?: number
+  feeling?: number
 }
 
 export const useCategories = () => {
@@ -241,7 +242,7 @@ export const useRecords = () => {
     }
   }
 
-  const createRecord = async (exerciseId: number, weight: string, quantity: number, unitId?: number) => {
+  const createRecord = async (exerciseId: number, weight: string, quantity: number, unitId?: number, customDate?: Date, feeling?: number) => {
     loading.value = true
     error.value = null
     try {
@@ -260,6 +261,15 @@ export const useRecords = () => {
 
       if (unitId) {
         recordData.unit_id = unitId
+      }
+
+      if (feeling !== undefined && feeling !== null) {
+        recordData.feeling = feeling
+      }
+
+      // Si se proporciona una fecha personalizada, establecerla como created_at
+      if (customDate) {
+        recordData.created_at = customDate.toISOString()
       }
 
       const { data, error: createError } = await supabase
