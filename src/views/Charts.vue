@@ -26,23 +26,46 @@
         <p class="text-gray-500 mt-4">Cargando datos...</p>
       </div>
 
-      <!-- Gráficas -->
-      <div v-else class="space-y-6">
-        <!-- Gráfica 1: Progreso de peso por ejercicio -->
-        <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 border border-white/20">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-gray-900">Progreso de Peso por Ejercicio</h2>
+      <!-- Selectores de categoría y ejercicio -->
+      <div v-if="!loading" class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 mb-6 border border-white/20">
+        <div class="space-y-4">
+          <!-- Selector de categoría -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
             <select
-              v-model="selectedUnitFilter"
-              @change="updateCharts"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
+              v-model="selectedCategoryId"
+              @change="onCategorySelected"
+              class="w-full px-4 h-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
             >
-              <option value="">Todas las unidades</option>
-              <option value="kilos">Kilos</option>
-              <option value="unidades">Unidades</option>
-              <option value="libras">Libras</option>
+              <option :value="null">Todas las categorías</option>
+              <option v-for="category in categories" :key="category.id" :value="category.id">
+                {{ category.name }}
+              </option>
             </select>
           </div>
+
+          <!-- Selector de ejercicio -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Ejercicio</label>
+            <select
+              v-model="selectedExerciseId"
+              @change="updateCharts"
+              class="w-full px-4 h-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+            >
+              <option :value="null">Todos los ejercicios</option>
+              <option v-for="exercise in exercises" :key="exercise.id" :value="exercise.id">
+                {{ exercise.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficas -->
+      <div v-if="!loading" class="space-y-6">
+        <!-- Gráfica 1: Progreso de peso por ejercicio -->
+        <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 border border-white/20">
+          <h2 class="text-xl font-bold text-gray-900 mb-4">Progreso de Peso por Ejercicio</h2>
           <div class="h-64">
             <canvas ref="weightChartRef"></canvas>
           </div>
@@ -58,21 +81,9 @@
 
         <!-- Gráfica 3: Volumen por entrenamiento -->
         <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 border border-white/20">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="text-xl font-bold text-gray-900">Volumen por Entrenamiento</h2>
-              <p class="text-sm text-gray-600 mt-1">Volumen = Peso × Repeticiones × Series</p>
-            </div>
-            <select
-              v-model="selectedVolumeUnitFilter"
-              @change="updateCharts"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
-            >
-              <option value="">Todas las unidades</option>
-              <option value="kilos">Kilos</option>
-              <option value="unidades">Unidades</option>
-              <option value="libras">Libras</option>
-            </select>
+          <div class="mb-4">
+            <h2 class="text-xl font-bold text-gray-900">Volumen por Entrenamiento</h2>
+            <p class="text-sm text-gray-600 mt-1">Volumen = Peso × Repeticiones × Series</p>
           </div>
           <div class="h-64">
             <canvas ref="volumeChartRef"></canvas>
@@ -98,20 +109,22 @@ import { Chart, registerables } from 'chart.js'
 import Topbar from '../components/Topbar.vue'
 import FeatherIcon from '../components/FeatherIcon.vue'
 import { useAuth } from '../composables/useAuth'
-import { useRecords, useUnits } from '../composables/useExercises'
+import { useRecords, useUnits, useCategories, useExercises } from '../composables/useExercises'
 
 Chart.register(...registerables)
 
 const { signOut } = useAuth()
 const { loading, fetchRecordsByDateRange } = useRecords()
 const { fetchUnits } = useUnits()
+const { categories, loading: loadingCategories, fetchCategories } = useCategories()
+const { exercises, fetchExercises } = useExercises()
 
 const records = ref<any[]>([])
 const weightChartRef = ref<HTMLCanvasElement | null>(null)
 const repsChartRef = ref<HTMLCanvasElement | null>(null)
 const volumeChartRef = ref<HTMLCanvasElement | null>(null)
-const selectedUnitFilter = ref<string>('')
-const selectedVolumeUnitFilter = ref<string>('')
+const selectedCategoryId = ref<number | null>(null)
+const selectedExerciseId = ref<number | null>(null)
 
 let weightChart: Chart | null = null
 let repsChart: Chart | null = null
@@ -139,14 +152,13 @@ const loadData = async () => {
 const prepareWeightData = () => {
   const exerciseMap: Record<string, Record<string, number[]>> = {}
   
-  // Filtrar registros por unidad si hay un filtro seleccionado
+  // Filtrar registros por unidad y ejercicio si hay filtros seleccionados
   let filteredRecords = records.value
   
-  if (selectedUnitFilter.value) {
-    filteredRecords = records.value.filter(record => {
-      if (!record.units) return false
-      const unitName = record.units.name?.toLowerCase() || ''
-      return unitName.includes(selectedUnitFilter.value.toLowerCase())
+  // Filtrar por ejercicio si está seleccionado
+  if (selectedExerciseId.value) {
+    filteredRecords = filteredRecords.filter(record => {
+      return record.exercise_id === selectedExerciseId.value
     })
   }
   
@@ -207,10 +219,18 @@ const prepareWeightData = () => {
 const prepareRepsData = () => {
   const exerciseMap: Record<string, Record<string, number[]>> = {}
   
+  // Filtrar registros por ejercicio si está seleccionado
+  let filteredRecords = records.value
+  if (selectedExerciseId.value) {
+    filteredRecords = filteredRecords.filter(record => {
+      return record.exercise_id === selectedExerciseId.value
+    })
+  }
+  
   // Obtener todas las fechas únicas
   const allDates = new Set<string>()
   
-  records.value.forEach(record => {
+  filteredRecords.forEach(record => {
     const date = new Date(record.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
     allDates.add(date)
   })
@@ -218,7 +238,7 @@ const prepareRepsData = () => {
   const sortedDates = Array.from(allDates).sort()
   
   // Inicializar mapas para cada ejercicio
-  records.value.forEach(record => {
+  filteredRecords.forEach(record => {
     const exerciseName = record.exercises?.name || 'Desconocido'
     if (!exerciseMap[exerciseName]) {
       exerciseMap[exerciseName] = {}
@@ -229,7 +249,7 @@ const prepareRepsData = () => {
   })
   
   // Agregar repeticiones por fecha y ejercicio
-  records.value.forEach(record => {
+  filteredRecords.forEach(record => {
     const exerciseName = record.exercises?.name || 'Desconocido'
     const date = new Date(record.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
     const reps = record.quantity || 0
@@ -261,17 +281,16 @@ const prepareRepsData = () => {
 }
 
 // Preparar datos para gráfica de volumen
-const prepareVolumeData = (unitFilter?: string) => {
+const prepareVolumeData = () => {
   const volumeByDate: Record<string, number> = {}
   
-  // Filtrar registros por unidad si hay un filtro seleccionado
+  // Filtrar registros por ejercicio si está seleccionado
   let filteredRecords = records.value
   
-  if (unitFilter) {
-    filteredRecords = records.value.filter(record => {
-      if (!record.units) return false
-      const unitName = record.units.name?.toLowerCase() || ''
-      return unitName.includes(unitFilter.toLowerCase())
+  // Filtrar por ejercicio si está seleccionado
+  if (selectedExerciseId.value) {
+    filteredRecords = filteredRecords.filter(record => {
+      return record.exercise_id === selectedExerciseId.value
     })
   }
   
@@ -474,7 +493,7 @@ const createRepsChart = () => {
 const createVolumeChart = () => {
   if (!volumeChartRef.value) return
   
-  const { dates, volumes } = prepareVolumeData(selectedVolumeUnitFilter.value)
+  const { dates, volumes } = prepareVolumeData()
   
   if (volumeChart) {
     volumeChart.destroy()
@@ -537,8 +556,21 @@ const updateCharts = () => {
   createVolumeChart()
 }
 
+// Manejar selección de categoría
+const onCategorySelected = async () => {
+  if (selectedCategoryId.value) {
+    await fetchExercises(selectedCategoryId.value)
+    selectedExerciseId.value = null
+  } else {
+    await fetchExercises()
+    selectedExerciseId.value = null
+  }
+  updateCharts()
+}
+
 onMounted(async () => {
-  await fetchUnits()
+  await Promise.all([fetchUnits(), fetchCategories()])
+  await fetchExercises() // Cargar todos los ejercicios inicialmente
   await loadData()
 })
 
