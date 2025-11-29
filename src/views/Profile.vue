@@ -19,7 +19,7 @@
             class="flex items-center gap-2 text-white hover:text-gray-300 transition-all duration-200 hover:scale-110">
             <FeatherIcon name="arrow-left" :size="20" color="currentColor" />
           </button>
-          <h1 class="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+          <h1 class="text-3xl font-bold bg-clip-text text-transparent transition-all duration-300" :class="titleGradientClass">
             Mi Perfil
           </h1>
         </div>
@@ -38,10 +38,10 @@
       </div>
 
       <!-- Formulario de perfil -->
-      <div v-else class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 border border-white/20">
+      <div v-else class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 border-2 transition-all duration-300" :class="profileCardBorderClass">
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <!-- Información del usuario (solo lectura) -->
-          <div class="pb-6 border-b border-gray-200">
+          <div class="pb-6 border-b-2 transition-all duration-300 rounded-xl p-6 -mx-6 -mt-6 mb-6" :class="headerBackgroundClass">
             
             <!-- Foto de perfil -->
             <div class="flex flex-col items-center mb-4">
@@ -75,8 +75,20 @@
                 <span v-if="age !== null" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md">
                   {{ age }} años
                 </span>
-                <span v-if="form.weight && form.height" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gradient-to-r from-green-500 to-teal-500 text-white shadow-md">
+                <span 
+                  v-if="form.weight && form.height" 
+                  class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gradient-to-r from-green-500 to-teal-500 text-white shadow-md cursor-help relative group"
+                >
                   IMC: {{ bmi.toFixed(1) }}
+                  <!-- Tooltip -->
+                  <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 text-white text-xs rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 w-64">
+                    <div class="mb-2 font-bold text-sm">Índice de Masa Corporal (IMC)</div>
+                    <div class="text-xs leading-relaxed text-gray-200">
+                      El IMC es una medida que relaciona tu peso con tu altura. Se calcula dividiendo tu peso (kg) entre tu altura al cuadrado (m²). Es una herramienta útil para evaluar si tu peso está dentro de un rango saludable.
+                    </div>
+                    <!-- Flecha del tooltip -->
+                    <div class="absolute left-1/2 transform -translate-x-1/2 top-full w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-transparent border-t-gray-900"></div>
+                  </div>
                 </span>
                 <span v-if="form.weight && form.height && bmiCategory" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold shadow-md" :class="bmiCategoryBadgeClass">
                   {{ bmiCategory }}
@@ -211,7 +223,8 @@
             <button
               type="submit"
               :disabled="saving || !hasChanges"
-              class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              class="w-full px-6 py-3 text-white font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              :class="submitButtonClass"
             >
               <FeatherIcon v-if="saving" name="loader" :size="18" color="currentColor" class="animate-spin" />
               <span>{{ saving ? 'Guardando...' : 'Guardar cambios' }}</span>
@@ -321,6 +334,54 @@ const profileBorderHoverClass = computed(() => {
       return 'border-pink-600'
     default:
       return 'border-blue-500'
+  }
+})
+
+// Clase CSS para el borde de la tarjeta del perfil según el género
+const profileCardBorderClass = computed(() => {
+  switch (form.value.gender) {
+    case 'masculino':
+      return 'border-blue-300/50 shadow-blue-200/20'
+    case 'femenino':
+      return 'border-pink-300/50 shadow-pink-200/20'
+    default:
+      return 'border-white/20'
+  }
+})
+
+// Clase CSS para el botón de guardar según el género
+const submitButtonClass = computed(() => {
+  switch (form.value.gender) {
+    case 'masculino':
+      return 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+    case 'femenino':
+      return 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600'
+    default:
+      return 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+  }
+})
+
+// Clase CSS para el gradiente del título según el género
+const titleGradientClass = computed(() => {
+  switch (form.value.gender) {
+    case 'masculino':
+      return 'bg-gradient-to-r from-white via-blue-200 to-blue-300'
+    case 'femenino':
+      return 'bg-gradient-to-r from-white via-pink-200 to-rose-300'
+    default:
+      return 'bg-gradient-to-r from-white to-blue-200'
+  }
+})
+
+// Clase CSS para el fondo del header según el género
+const headerBackgroundClass = computed(() => {
+  switch (form.value.gender) {
+    case 'masculino':
+      return 'bg-gradient-to-br from-blue-50 via-blue-100/50 to-blue-50 border-blue-200'
+    case 'femenino':
+      return 'bg-gradient-to-br from-pink-50 via-rose-100/50 to-pink-50 border-pink-200'
+    default:
+      return 'bg-gradient-to-br from-gray-50 via-gray-100/50 to-gray-50 border-gray-200'
   }
 })
 
