@@ -4,6 +4,7 @@ import Login from '../views/Login.vue'
 import Home from '../views/Home.vue'
 import AddExercise from '../views/AddExercise.vue'
 import Charts from '../views/Charts.vue'
+import Profile from '../views/Profile.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -34,6 +35,12 @@ const router = createRouter({
       path: '/charts',
       name: 'Charts',
       component: Charts,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/profile',
+      name: 'Profile',
+      component: Profile,
       meta: { requiresAuth: true }
     }
   ]

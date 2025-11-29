@@ -44,6 +44,13 @@
                   <FeatherIcon name="bar-chart-2" :size="18" color="currentColor" />
                   Gráficas
                 </button>
+                <button
+                  @click="handleProfile"
+                  class="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                >
+                  <FeatherIcon name="user" :size="18" color="currentColor" />
+                  Perfil
+                </button>
                 <div class="border-t border-gray-200"></div>
                 <button
                   @click="handleLogout"
@@ -86,6 +93,11 @@ const closeMenu = () => {
 const handleCharts = () => {
   closeMenu()
   router.push('/charts')
+}
+
+const handleProfile = () => {
+  closeMenu()
+  router.push('/profile')
 }
 
 const emit = defineEmits<{
