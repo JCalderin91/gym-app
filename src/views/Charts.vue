@@ -116,7 +116,7 @@ Chart.register(...registerables)
 const { signOut } = useAuth()
 const { loading, fetchRecordsByDateRange } = useRecords()
 const { fetchUnits } = useUnits()
-const { categories, loading: loadingCategories, fetchCategories } = useCategories()
+const { categories, fetchCategories } = useCategories()
 const { exercises, fetchExercises } = useExercises()
 
 const records = ref<any[]>([])
