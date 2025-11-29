@@ -49,10 +49,15 @@
                 <img
                   :src="userAvatarUrl"
                   :alt="user?.user_metadata?.full_name || 'Foto de perfil'"
-                  class="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover"
+                  class="w-24 h-24 rounded-full border-4 shadow-lg object-cover"
+                  :class="profileBorderClass"
                   @error="handleImageError"
                 />
-                <div class="absolute inset-0 rounded-full border-4 border-blue-500 opacity-0 hover:opacity-100 transition-opacity"></div>
+                <div class="absolute inset-0 rounded-full border-4 opacity-0 hover:opacity-100 transition-opacity" :class="profileBorderHoverClass"></div>
+                <!-- Símbolo de género -->
+                <div v-if="form.gender" class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-white border-2 border-gray-300 shadow-md flex items-center justify-center">
+                  <span class="text-2xl font-extrabold" :class="genderSymbolClass">{{ genderSymbol }}</span>
+                </div>
               </div>
               
               <!-- Nombre -->
@@ -113,7 +118,6 @@
                     <option value="">Selecciona</option>
                     <option value="masculino">Masculino</option>
                     <option value="femenino">Femenino</option>
-                    <option value="otro">Otro</option>
                   </select>
                 </div>
 
@@ -271,6 +275,54 @@ const userAvatarUrl = computed(() => {
 const handleImageError = () => {
   imageError.value = true
 }
+
+// Símbolo de género
+const genderSymbol = computed(() => {
+  switch (form.value.gender) {
+    case 'masculino':
+      return '♂'
+    case 'femenino':
+      return '♀'
+    default:
+      return ''
+  }
+})
+
+// Clase CSS para el símbolo de género
+const genderSymbolClass = computed(() => {
+  switch (form.value.gender) {
+    case 'masculino':
+      return 'text-blue-600'
+    case 'femenino':
+      return 'text-pink-600'
+    default:
+      return 'text-gray-600'
+  }
+})
+
+// Clase CSS para el borde de la foto de perfil según el género
+const profileBorderClass = computed(() => {
+  switch (form.value.gender) {
+    case 'masculino':
+      return 'border-blue-500'
+    case 'femenino':
+      return 'border-pink-500'
+    default:
+      return 'border-white'
+  }
+})
+
+// Clase CSS para el hover del borde de la foto de perfil
+const profileBorderHoverClass = computed(() => {
+  switch (form.value.gender) {
+    case 'masculino':
+      return 'border-blue-600'
+    case 'femenino':
+      return 'border-pink-600'
+    default:
+      return 'border-blue-500'
+  }
+})
 
 // Calcular edad
 const age = computed(() => {
